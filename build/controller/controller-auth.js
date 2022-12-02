@@ -35,6 +35,9 @@ class AuthRoute {
                 const { email, password } = JSON.parse(requestBody);
                 connection
                     .select(`SELECT * FROM user WHERE email=? `, [email])
+                    .catch((err) => {
+                    console.log(err);
+                })
                     .then((chunk) => {
                     const verifyPassword = bcrypt_1.default.compareSync(password, chunk.password);
                     const token = auth_access_token_1.default.createAccessToken({
@@ -65,6 +68,9 @@ class AuthRoute {
                         res.writeHead(401, { "Content-Type": "application/json" });
                         res.end(JSON.stringify(rest_api_format_1.default.status401({}, "Wrong password")));
                     }
+                })
+                    .catch((err) => {
+                    console.log(err);
                 });
             });
         });
@@ -79,20 +85,21 @@ class AuthRoute {
                 const userId = (0, uuid_1.v4)();
                 const addressId = "";
                 const userBalance = 0;
-                const create_at = new Date().toISOString();
-                const update_at = new Date().toISOString();
+                const create_at = new Date();
+                const update_at = new Date();
                 connection
-                    .insert(`INSERT INTO user (user_id, email, password, username, hp, create_at, update_at, cookies, id_alamat, saldo) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
+                    .insert(`INSERT INTO user (user_id, email, username, hp, password, cookies, create_at, update_at, saldo, playtime, img) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, [
                     userId,
                     email,
-                    hashedPassword,
                     username,
                     phone,
+                    hashedPassword,
+                    token,
                     create_at,
                     update_at,
-                    token,
-                    addressId,
                     userBalance,
+                    0,
+                    "hei",
                 ])
                     .catch((err) => {
                     res.writeHead(500, { "Content-Type": "application/json" });
@@ -105,26 +112,31 @@ class AuthRoute {
                 })
                     .then((chunk) => {
                     const fileName = `${email}`.substring(0, `${email}`.indexOf("@"));
-                    fs_1.default.mkdirSync(path_1.default.join(__dirname, `..\\assets\\images\\${email}`));
-                    fs_1.default.copyFile(path_1.default.join(__dirname, `..\\assets\\images\\avatar-profile-100.jpg`), path_1.default.join(__dirname, `..\\assets\\images\\${email}\\${fileName}-profile.jpg`), (err) => {
-                        if (err)
-                            throw err;
-                    });
-                    connection.update(`UPDATE user SET img=? WHERE email=?`, [
-                        `${fileName}-profile.jpg`,
-                        email,
-                    ]);
+                    try {
+                        fs_1.default.mkdir(path_1.default.join(__dirname, `..\\assets\\images\\${email}`), (err) => {
+                            if (err) {
+                                console.log(err);
+                            }
+                        });
+                        fs_1.default.copyFile(path_1.default.join(__dirname, `..\\assets\\images\\avatar-profile-100.jpg`), path_1.default.join(__dirname, `..\\assets\\images\\${email}\\${fileName}-profile.jpg`), (err) => {
+                            if (err)
+                                throw err;
+                        });
+                        connection.update(`UPDATE user SET img=? WHERE email=?`, [
+                            `${fileName}-profile.jpg`,
+                            email,
+                        ]);
+                    }
+                    catch (error) { }
                     const result = JSON.stringify(rest_api_format_1.default.status201({
                         userId,
                         email,
-                        hashedPassword,
                         username,
                         phone,
                         images: `${fileName}-profile.jpg`,
                         create_at,
                         update_at,
                         token,
-                        addressId,
                     }, "Sign up success"));
                     res.writeHead(200, { "Content-Type": "application/json" });
                     res.end(result);

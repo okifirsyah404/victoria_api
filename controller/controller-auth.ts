@@ -113,18 +113,7 @@ class AuthRoute {
             "hei",
           ]
         )
-        .catch((err) => {
-          res.writeHead(500, { "Content-Type": "application/json" });
-          if (err.errno == 1062) {
-            res.end(
-              JSON.stringify(
-                RestAPIFormat.status400(err, "Email already exist")
-              )
-            );
-          } else {
-            res.end(JSON.stringify({ error: err }));
-          }
-        })
+
         .then((chunk) => {
           const fileName = `${email}`.substring(0, `${email}`.indexOf("@"));
 
@@ -156,7 +145,9 @@ class AuthRoute {
               `${fileName}-profile.jpg`,
               email,
             ]);
-          } catch (error) {}
+          } catch (error) {
+            if (error) console.log(error);
+          }
 
           const result = JSON.stringify(
             RestAPIFormat.status201(
@@ -176,6 +167,18 @@ class AuthRoute {
 
           res.writeHead(200, { "Content-Type": "application/json" });
           res.end(result);
+        })
+        .catch((err) => {
+          res.writeHead(500, { "Content-Type": "application/json" });
+          if (err.errno == 1062) {
+            res.end(
+              JSON.stringify(
+                RestAPIFormat.status400(err, "Email already exist")
+              )
+            );
+          } else {
+            res.end(JSON.stringify({ error: err }));
+          }
         });
     });
   }

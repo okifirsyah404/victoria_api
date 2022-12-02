@@ -17,6 +17,7 @@ const path_1 = __importDefault(require("path"));
 const sql_connection_1 = __importDefault(require("../config/sql-connection"));
 const rest_api_format_1 = __importDefault(require("../utils/rest-api-format"));
 const auth_access_token_1 = __importDefault(require("../utils/auth-access-token"));
+const formidable_1 = __importDefault(require("formidable"));
 const connection = sql_connection_1.default.getInstance();
 connection.getConnection();
 class ImagesRoute {
@@ -44,6 +45,41 @@ class ImagesRoute {
                 });
                 res.end(data);
             });
+        });
+    }
+    static uploadImage(req, res) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const form = new formidable_1.default.IncomingForm({});
+            form.parse(req, (err, fields, files) => __awaiter(this, void 0, void 0, function* () {
+                var _a;
+                const token = JSON.parse((_a = auth_access_token_1.default.checkAccessToken(req.headers.authorization)) !== null && _a !== void 0 ? _a : "");
+                let userData;
+                yield connection
+                    .select(`SELECT * FROM user WHERE email=?`, [token.email])
+                    .then((chunk) => {
+                    userData = chunk;
+                });
+                const oldPath = files.file.filepath;
+                const newPath = path_1.default.join(__dirname, `..\\assets\\images\\${token.email}\\${userData.img}`);
+                fs_1.default.copyFile(oldPath, newPath, (err) => {
+                    if (err)
+                        throw err;
+                });
+                const result = JSON.stringify(rest_api_format_1.default.status201({
+                    userId: userData.userId,
+                    email: userData.email,
+                    hashedPassword: userData.hashedPassword,
+                    username: userData.username,
+                    phone: userData.phone,
+                    images: userData.img,
+                    create_at: userData.create_at,
+                    update_at: userData.update_at,
+                    token: userData.cookies,
+                    addressId: userData.addressId,
+                }, "Upload image success"));
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(result);
+            }));
         });
     }
 }

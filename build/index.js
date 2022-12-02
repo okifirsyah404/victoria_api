@@ -31,6 +31,7 @@ const dotenv = __importStar(require("dotenv"));
 const sql_connection_1 = __importDefault(require("./config/sql-connection"));
 const controller_auth_1 = __importDefault(require("./controller/controller-auth"));
 const controller_images_1 = __importDefault(require("./controller/controller-images"));
+const controller_user_1 = __importDefault(require("./controller/controller-user"));
 dotenv.config();
 const connection = sql_connection_1.default.getInstance().getConnection();
 const server = http_1.default.createServer((req, res) => {
@@ -66,6 +67,33 @@ const server = http_1.default.createServer((req, res) => {
         case "/images":
             if (method == "GET") {
                 controller_images_1.default.getImage(req, res);
+            }
+            else if (method == "POST") {
+                controller_images_1.default.uploadImage(req, res);
+            }
+            else {
+                res.writeHead(405, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Method not allowed" }));
+            }
+            break;
+        case "/user":
+            if (method == "GET") {
+                controller_user_1.default.getUser(req, res);
+            }
+            else if (method == "POST") {
+                controller_user_1.default.updateUser(req, res);
+            }
+            else {
+                res.writeHead(405, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Method not allowed" }));
+            }
+            break;
+        case "/user/image":
+            if (method == "GET") {
+                controller_user_1.default.getUserImage(req, res);
+            }
+            else if (method == "POST") {
+                controller_user_1.default.uploadUserImage(req, res);
             }
             else {
                 res.writeHead(405, { "Content-Type": "application/json" });
