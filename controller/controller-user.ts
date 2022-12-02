@@ -22,7 +22,7 @@ class RouteUser {
     );
 
     await connection
-      .select(`SELECT * FROM user WHERE email=?`, [token.email])
+      .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
       .then((chunk) => {
         res.writeHead(200);
         res.end(
@@ -34,7 +34,10 @@ class RouteUser {
               phone: chunk.hp,
               address: chunk.id_address,
               image: chunk.img,
-              token: chunk.cookies,
+              token: token,
+              ballance: chunk.saldo,
+              create_at: chunk.create_at,
+              update_at: chunk.update_at,
             })
           )
         );
@@ -56,14 +59,16 @@ class RouteUser {
     let userData: any;
 
     await connection
-      .select(`SELECT * FROM user WHERE email=?`, [token.email])
+      .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
       .then((chunk) => {
         userData = chunk;
       });
 
     const filePath = path.join(
       __dirname,
-      `..\\assets\\images\\${token.email}\\${userData.img}`
+      `..\\assets\\images\\${userData.user_id.replace(/-/gi, "")}\\${
+        userData.img
+      }`
     );
 
     fs.readFile(filePath, (err, data) => {
