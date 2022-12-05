@@ -31,12 +31,21 @@ const dotenv = __importStar(require("dotenv"));
 const sql_connection_1 = __importDefault(require("./config/sql-connection"));
 const controller_auth_1 = __importDefault(require("./controller/controller-auth"));
 const controller_images_1 = __importDefault(require("./controller/controller-images"));
+const controller_user_1 = __importDefault(require("./controller/controller-user"));
+const controller_home_content_1 = __importDefault(require("./controller/controller-home-content"));
 dotenv.config();
 const connection = sql_connection_1.default.getInstance().getConnection();
 const server = http_1.default.createServer((req, res) => {
     const { url, method } = req;
     switch (url) {
-        case "/auth/signin":
+        case "/":
+            if (method == "GET") {
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.write(JSON.stringify({ message: "Hello World" }));
+                res.end();
+            }
+            break;
+        case "/api/auth/signin":
             if (method == "POST") {
                 controller_auth_1.default.signInResponse(req, res);
             }
@@ -45,7 +54,7 @@ const server = http_1.default.createServer((req, res) => {
                 res.end(JSON.stringify({ error: "Method not allowed" }));
             }
             break;
-        case "/auth/signup":
+        case "/api/auth/signup":
             if (method == "POST") {
                 controller_auth_1.default.signUpResponse(req, res);
             }
@@ -54,7 +63,12 @@ const server = http_1.default.createServer((req, res) => {
                 res.end(JSON.stringify({ error: "Method not allowed" }));
             }
             break;
-        case "/auth/signout":
+        case "/api/auth/signup/verify":
+            if (method == "POST") {
+                controller_auth_1.default.signUpEmailResponse(req, res);
+            }
+            break;
+        case "/api/auth/signout":
             if (method == "GET") {
                 controller_auth_1.default.signOutResponse(req, res);
             }
@@ -63,13 +77,48 @@ const server = http_1.default.createServer((req, res) => {
                 res.end(JSON.stringify({ error: "Method not allowed" }));
             }
             break;
-        case "/images":
+        case "/api/images":
             if (method == "GET") {
                 controller_images_1.default.getImage(req, res);
+            }
+            else if (method == "POST") {
+                controller_images_1.default.uploadImage(req, res);
             }
             else {
                 res.writeHead(405, { "Content-Type": "application/json" });
                 res.end(JSON.stringify({ error: "Method not allowed" }));
+            }
+            break;
+        case "/api/user":
+            if (method == "GET") {
+                controller_user_1.default.getUser(req, res);
+            }
+            else if (method == "POST") {
+                controller_user_1.default.updateUser(req, res);
+            }
+            else {
+                res.writeHead(405, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Method not allowed" }));
+            }
+            break;
+        case "/api/user/image":
+            if (method == "GET") {
+                controller_user_1.default.getUserImage(req, res);
+            }
+            else if (method == "POST") {
+                controller_user_1.default.uploadUserImage(req, res);
+            }
+            else {
+                res.writeHead(405, { "Content-Type": "application/json" });
+                res.end(JSON.stringify({ error: "Method not allowed" }));
+            }
+            break;
+        case "/api/home-content":
+            // TODO: add method
+            break;
+        case "/api/home/user":
+            if (method == "GET") {
+                controller_home_content_1.default.getHomeContentUser(req, res);
             }
             break;
         default:

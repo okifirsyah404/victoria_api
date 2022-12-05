@@ -8,11 +8,14 @@ import SQLConnection from "../config/sql-connection";
 import ParseJSON from "../utils/json-parse";
 import RestAPIFormat from "../utils/rest-api-format";
 import AuthAccessToken from "../utils/auth-access-token";
+import EmailServices from "../utils/controller-email";
 
 const saltRounds = 10;
 
 const connection = SQLConnection.getInstance();
 connection.getConnection();
+
+let OTP = "";
 
 class AuthRoute {
   constructor() {}
@@ -53,10 +56,10 @@ class AuthRoute {
                     email: chunk.email,
                     username: chunk.username,
                     phone: chunk.hp,
-                    address: chunk.id_address,
                     image: chunk.img,
                     token: token,
                     ballance: chunk.saldo,
+                    playtime: chunk.playtime,
                     create_at: chunk.create_at,
                     update_at: chunk.update_at,
                   },
@@ -83,6 +86,43 @@ class AuthRoute {
         })
         .catch((err) => {
           console.log(err);
+        });
+    });
+  }
+
+  public static async signUpEmailResponse(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    req.on("data", async (chunk) => {
+      const requestBody = ParseJSON.JSONtoObject(chunk);
+      const { email, password, username, phone } = JSON.parse(requestBody);
+
+      OTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+      connection
+        .select(`SELECT * FROM user WHERE email=?`, [email])
+        .then((chunk) => {
+          if (!chunk) {
+            EmailServices.sendEmailVerification(email, OTP);
+
+            const result = JSON.stringify(
+              RestAPIFormat.status200(
+                {
+                  OTP,
+                },
+                "Sign up in progress"
+              )
+            );
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(result);
+          } else {
+            res.writeHead(401, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify(RestAPIFormat.status401({}, "Email already used"))
+            );
+          }
         });
     });
   }
@@ -166,9 +206,9 @@ class AuthRoute {
                 username,
                 phone,
                 images: `${fileName}-profile.jpg`,
+                token,
                 create_at,
                 update_at,
-                token,
               },
               "Sign up success"
             )

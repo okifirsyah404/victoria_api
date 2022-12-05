@@ -43,6 +43,9 @@ class AuthAccessToken {
         if (auth) {
             jwt.verify(auth, process.env.ACCESS_TOKEN_SECRET, (err, payload) => {
                 loadedPayload = JSON.stringify(payload);
+                if (err) {
+                    loadedPayload = undefined;
+                }
             });
             return loadedPayload;
         }
