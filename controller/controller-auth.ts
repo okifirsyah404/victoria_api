@@ -8,11 +8,14 @@ import SQLConnection from "../config/sql-connection";
 import ParseJSON from "../utils/json-parse";
 import RestAPIFormat from "../utils/rest-api-format";
 import AuthAccessToken from "../utils/auth-access-token";
+import EmailServices from "../utils/controller-email";
 
 const saltRounds = 10;
 
 const connection = SQLConnection.getInstance();
 connection.getConnection();
+
+let OTP = "";
 
 class AuthRoute {
   constructor() {}
@@ -31,38 +34,84 @@ class AuthRoute {
       const { email, password } = JSON.parse(requestBody);
       connection
         .select(`SELECT * FROM user WHERE email=? `, [email])
+        .then(async (chunk) => {
+          if (chunk) {
+            let verifyPassword = bcrypt.compareSync(password, chunk.password);
+
+            const token = AuthAccessToken.createAccessToken({
+              userId: chunk.user_id,
+              email: chunk.email,
+            });
+
+            connection.update(`UPDATE user SET cookies=? WHERE email=?`, [
+              token,
+              chunk.email,
+            ]);
+
+            if (verifyPassword) {
+              const result = JSON.stringify(
+                RestAPIFormat.status200(
+                  {
+                    userId: chunk.user_id,
+                    email: chunk.email,
+                    username: chunk.username,
+                    phone: chunk.hp,
+                    image: chunk.img,
+                    token: token,
+                    ballance: chunk.saldo,
+                    playtime: chunk.playtime,
+                    create_at: chunk.create_at,
+                    update_at: chunk.update_at,
+                  },
+                  "Sign in success"
+                )
+              );
+
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(result);
+            } else {
+              res.writeHead(401, { "Content-Type": "application/json" });
+              res.end(
+                JSON.stringify(RestAPIFormat.status401({}, "Wrong password"))
+              );
+            }
+          } else {
+            res.writeHead(401, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify(
+                RestAPIFormat.status401({}, "Email not registered")
+              )
+            );
+          }
+        })
         .catch((err) => {
           console.log(err);
-        })
+        });
+    });
+  }
+
+  public static async signUpEmailResponse(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    req.on("data", async (chunk) => {
+      const requestBody = ParseJSON.JSONtoObject(chunk);
+      const { email, password, username, phone } = JSON.parse(requestBody);
+
+      OTP = Math.floor(100000 + Math.random() * 900000).toString();
+
+      connection
+        .select(`SELECT * FROM user WHERE email=?`, [email])
         .then((chunk) => {
-          const verifyPassword = bcrypt.compareSync(password, chunk.password);
+          if (!chunk) {
+            EmailServices.sendEmailVerification(email, OTP);
 
-          const token = AuthAccessToken.createAccessToken({
-            email: chunk.email,
-            username: chunk.username,
-          });
-
-          connection.update(`UPDATE user SET cookies=? WHERE email=?`, [
-            token,
-            chunk.email,
-          ]);
-
-          if (verifyPassword) {
             const result = JSON.stringify(
               RestAPIFormat.status200(
                 {
-                  userId: chunk.user_id,
-                  email: chunk.email,
-                  username: chunk.username,
-                  phone: chunk.hp,
-                  address: chunk.id_address,
-                  image: chunk.img,
-                  token: token,
-                  ballance: chunk.saldo,
-                  create_at: chunk.create_at,
-                  update_at: chunk.update_at,
+                  OTP,
                 },
-                "Sign in success"
+                "Sign up in progress"
               )
             );
 
@@ -71,12 +120,9 @@ class AuthRoute {
           } else {
             res.writeHead(401, { "Content-Type": "application/json" });
             res.end(
-              JSON.stringify(RestAPIFormat.status401({}, "Wrong password"))
+              JSON.stringify(RestAPIFormat.status401({}, "Email already used"))
             );
           }
-        })
-        .catch((err) => {
-          console.log(err);
         });
     });
   }
@@ -89,12 +135,14 @@ class AuthRoute {
       const requestBody = ParseJSON.JSONtoObject(chunk);
       const { email, password, username, phone } = JSON.parse(requestBody);
       const hashedPassword = await bcrypt.hash(password, saltRounds);
-      const token = AuthAccessToken.createAccessToken({ email, username });
       const userId = uuidv4();
-      const addressId = "";
       const userBalance = 0;
       const create_at = new Date();
       const update_at = new Date();
+      const token = AuthAccessToken.createAccessToken({
+        userId,
+        email,
+      });
 
       connection
         .insert(
@@ -110,16 +158,19 @@ class AuthRoute {
             update_at,
             userBalance,
             0,
-            "hei",
+            "/",
           ]
         )
 
-        .then((chunk) => {
-          const fileName = `${email}`.substring(0, `${email}`.indexOf("@"));
+        .then((_) => {
+          const fileName = `${userId.replace(/-/gi, "")}`;
 
           try {
             fs.mkdir(
-              path.join(__dirname, `..\\assets\\images\\${email}`),
+              path.join(
+                __dirname,
+                `..\\assets\\images\\${userId.replace(/-/gi, "")}`
+              ),
               (err) => {
                 if (err) {
                   console.log(err);
@@ -134,16 +185,16 @@ class AuthRoute {
               ),
               path.join(
                 __dirname,
-                `..\\assets\\images\\${email}\\${fileName}-profile.jpg`
+                `..\\assets\\images\\${fileName}\\${fileName}-profile.jpg`
               ),
               (err) => {
                 if (err) throw err;
               }
             );
 
-            connection.update(`UPDATE user SET img=? WHERE email=?`, [
+            connection.update(`UPDATE user SET img=? WHERE user_id=?`, [
               `${fileName}-profile.jpg`,
-              email,
+              userId,
             ]);
           } catch (error) {
             if (error) console.log(error);
@@ -157,9 +208,9 @@ class AuthRoute {
                 username,
                 phone,
                 images: `${fileName}-profile.jpg`,
+                token,
                 create_at,
                 update_at,
-                token,
               },
               "Sign up success"
             )
@@ -194,15 +245,15 @@ class AuthRoute {
     let userData: any;
 
     await connection
-      .select(`SELECT * FROM user WHERE email=?`, [token.email])
+      .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
       .then((chunk) => {
         userData = chunk;
       });
 
     if (req.headers.authorization == userData.cookies) {
-      connection.update(`UPDATE user SET cookies=? WHERE email=?`, [
+      connection.update(`UPDATE user SET cookies=? WHERE user_id=?`, [
         "",
-        token.email,
+        token.userId,
       ]);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status200({}, "Sign out success")));

@@ -1,6 +1,7 @@
 import http from "http";
 import fs from "fs";
 import path from "path";
+import bcrypt from "bcrypt";
 
 import SQLConnection from "../config/sql-connection";
 import RestAPIFormat from "../utils/rest-api-format";
@@ -12,37 +13,58 @@ import ParseJSON from "../utils/json-parse";
 const connection = SQLConnection.getInstance();
 connection.getConnection();
 
+const saltRounds = 10;
 class RouteUser {
   public static async getUser(
     req: http.IncomingMessage,
     res: http.ServerResponse
   ) {
-    const token = JSON.parse(
-      AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
-    );
+    let token;
 
-    await connection
-      .select(`SELECT * FROM user WHERE email=?`, [token.email])
-      .then((chunk) => {
-        res.writeHead(200);
-        res.end(
-          JSON.stringify(
-            RestAPIFormat.status200({
-              userId: chunk.user_id,
-              email: chunk.email,
-              username: chunk.username,
-              phone: chunk.hp,
-              address: chunk.id_address,
-              image: chunk.img,
-              token: chunk.cookies,
-            })
-          )
-        );
-      })
-      .catch((err) => {
-        res.writeHead(404);
-        res.end(JSON.stringify(RestAPIFormat.status404(err)));
-      });
+    const verifyToken =
+      AuthAccessToken.checkAccessToken(req.headers.authorization) ?? "";
+
+    if (verifyToken) {
+      try {
+        token = JSON.parse(verifyToken);
+
+        await connection
+          .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
+          .then((chunk) => {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify(
+                RestAPIFormat.status200(
+                  {
+                    userId: chunk.user_id,
+                    email: chunk.email,
+                    username: chunk.username,
+                    phone: chunk.hp,
+                    address: chunk.id_address,
+                    image: chunk.img,
+                    ballance: chunk.saldo,
+                    playTime: chunk.playtime,
+                    token: req.headers.authorization,
+                    create_at: chunk.create_at,
+                    update_at: chunk.update_at,
+                  },
+                  "Success get user data"
+                )
+              )
+            );
+          })
+          .catch((err) => {
+            res.writeHead(404);
+            res.end(JSON.stringify(RestAPIFormat.status404(err)));
+          });
+      } catch (error) {
+        res.writeHead(400);
+        res.end(JSON.stringify(RestAPIFormat.status400(error)));
+      }
+    } else {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
+    }
   }
 
   public static async getUserImage(
@@ -56,14 +78,16 @@ class RouteUser {
     let userData: any;
 
     await connection
-      .select(`SELECT * FROM user WHERE email=?`, [token.email])
+      .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
       .then((chunk) => {
         userData = chunk;
       });
 
     const filePath = path.join(
       __dirname,
-      `..\\assets\\images\\${token.email}\\${userData.img}`
+      `..\\assets\\images\\${userData.user_id.replace(/-/gi, "")}\\${
+        userData.img
+      }`
     );
 
     fs.readFile(filePath, (err, data) => {
@@ -91,47 +115,55 @@ class RouteUser {
 
     req.on("data", async (chunk) => {
       const requestBody = ParseJSON.JSONtoObject(chunk);
-      const { username, phone, email } = JSON.parse(requestBody);
+      const { username, phone, email, password } = JSON.parse(requestBody);
       let newToken: string;
 
       await connection
-        .select(`SELECT * FROM user WHERE email=?`, [token.email])
+        .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
         .then(async (chunk) => {
           console.log(chunk);
 
           if (username) {
             await connection.update(
-              `UPDATE user SET username=? WHERE email=?`,
-              [username, token.email]
+              `UPDATE user SET username=?, update_at=? WHERE user_id=?`,
+              [username, new Date(), token.userId]
             );
           }
           if (phone) {
-            await connection.update(`UPDATE user SET hp=? WHERE email=?`, [
-              phone,
-              token.email,
-            ]);
+            await connection.update(
+              `UPDATE user SET hp=?, update_at=? WHERE user_id=?`,
+              [phone, new Date(), token.userId]
+            );
           }
           if (email) {
-            await connection.update(`UPDATE user SET email=? WHERE email=?`, [
-              email,
-              token.email,
-            ]);
+            await connection.update(
+              `UPDATE user SET email=?, update_at=? WHERE user_id=?`,
+              [email, new Date(), token.userId]
+            );
 
             newToken = AuthAccessToken.createAccessToken({
               email: email || chunk.email,
               username: chunk.username,
             });
 
-            await connection.update(`UPDATE user SET cookies=? WHERE email=?`, [
-              newToken,
-              email || token.email,
-            ]);
+            await connection.update(
+              `UPDATE user SET cookies=? WHERE user_id=?`,
+              [newToken, token.userId]
+            );
+          }
+          if (password) {
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+            await connection.update(
+              `UPDATE user SET password=?, update_at=? WHERE user_id=?`,
+              [hashedPassword, new Date(), token.userId]
+            );
           }
 
           connection
-            .select(`SELECT * FROM user WHERE email=?`, [email || token.email])
+            .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
             .then((chunk) => {
-              res.writeHead(200);
+              res.writeHead(200, { "Content-Type": "application/json" });
               res.end(
                 JSON.stringify(
                   RestAPIFormat.status200({
@@ -139,16 +171,16 @@ class RouteUser {
                     email: chunk.email,
                     username: chunk.username,
                     phone: chunk.hp,
-                    address: chunk.id_address,
                     image: chunk.img,
+                    ballance: chunk.saldo,
+                    playTime: chunk.playtime,
                     token: newToken,
+                    create_at: chunk.create_at,
+                    update_at: chunk.update_at,
                   })
                 )
               );
             });
-          // .catch((err) => {
-          //   throw err;
-          // });
         })
         .catch((err) => {
           console.log(err);
@@ -172,6 +204,8 @@ class RouteUser {
     const form = new formidable.IncomingForm({});
 
     form.parse(req, async (err, fields, files: any) => {
+      console.log(req.headers);
+
       const token = JSON.parse(
         AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
       );
@@ -179,7 +213,7 @@ class RouteUser {
       let userData: any;
 
       await connection
-        .select(`SELECT * FROM user WHERE email=?`, [token.email])
+        .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
         .then((chunk) => {
           userData = chunk;
         });
@@ -187,7 +221,9 @@ class RouteUser {
       const oldPath = files.file.filepath;
       const newPath = path.join(
         __dirname,
-        `..\\assets\\images\\${token.email}\\${userData.img}`
+        `..\\assets\\images\\${token.userId.replace(/-/gi, "")}\\${
+          userData.img
+        }`
       );
 
       fs.copyFile(oldPath, newPath, (err) => {
@@ -199,14 +235,14 @@ class RouteUser {
           {
             userId: userData.userId,
             email: userData.email,
-            hashedPassword: userData.hashedPassword,
             username: userData.username,
             phone: userData.phone,
             images: userData.img,
+            ballance: userData.saldo,
+            playTime: userData.playtime,
+            token: userData.cookies,
             create_at: userData.create_at,
             update_at: userData.update_at,
-            token: userData.cookies,
-            addressId: userData.addressId,
           },
           "Upload image success"
         )
