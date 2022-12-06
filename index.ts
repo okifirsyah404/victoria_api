@@ -19,6 +19,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.write(JSON.stringify({ message: "Hello World" }));
         res.end();
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
       }
       break;
 
@@ -43,6 +46,27 @@ const server = http.createServer((req, res) => {
     case "/api/auth/signup/verify":
       if (method == "POST") {
         AuthRoute.signUpEmailResponse(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/auth/forgot-password":
+      if (method == "PUT") {
+        AuthRoute.forgotPasswordResponse(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/auth/forgot-password/verify":
+      if (method == "POST") {
+        AuthRoute.forgotPasswordOtpResponse(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
       }
       break;
 
@@ -69,8 +93,6 @@ const server = http.createServer((req, res) => {
     case "/api/user":
       if (method == "GET") {
         RouteUser.getUser(req, res);
-      } else if (method == "POST") {
-        RouteUser.updateUser(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));
@@ -88,6 +110,33 @@ const server = http.createServer((req, res) => {
       }
       break;
 
+    case "/api/user/username":
+      if (method == "PUT") {
+        RouteUser.updateUsername(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/user/password/verify":
+      if (method == "GET") {
+        RouteUser.sendOtpUpdatePassword(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/user/password":
+      if (method == "PUT") {
+        RouteUser.updatePassword(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
     case "/api/home-content":
       // TODO: add method
       break;
@@ -95,6 +144,9 @@ const server = http.createServer((req, res) => {
     case "/api/home/user":
       if (method == "GET") {
         HomeContentRoute.getHomeContentUser(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
       }
       break;
 

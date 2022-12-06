@@ -43,9 +43,9 @@ class AuthRoute {
               email: chunk.email,
             });
 
-            connection.update(`UPDATE user SET cookies=? WHERE email=?`, [
+            connection.update(`UPDATE user SET cookies=? WHERE user_id=?`, [
               token,
-              chunk.email,
+              chunk.user_id,
             ]);
 
             if (verifyPassword) {
@@ -259,6 +259,71 @@ class AuthRoute {
       res.writeHead(401, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
     }
+  }
+
+  public static async forgotPasswordOtpResponse(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    req.on("data", async (chunk) => {
+      const requestBody = ParseJSON.JSONtoObject(chunk);
+      const { email } = JSON.parse(requestBody);
+
+      connection
+        .select(`SELECT * FROM user WHERE email=?`, [email])
+        .then((data) => {
+          if (data) {
+            OTP = Math.floor(100000 + Math.random() * 900000).toString();
+            EmailServices.sendEmailResetPassword(email, OTP);
+
+            const result = JSON.stringify(
+              RestAPIFormat.status200(
+                {
+                  OTP,
+                },
+                "Forgot password in progress"
+              )
+            );
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(result);
+          } else {
+            res.writeHead(401, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify(
+                RestAPIFormat.status401({}, "Email not registered")
+              )
+            );
+          }
+        });
+    });
+  }
+
+  public static async forgotPasswordResponse(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    req.on("data", async (chunk) => {
+      const requestBody = ParseJSON.JSONtoObject(chunk);
+      const { email, password } = JSON.parse(requestBody);
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      console.log(email + ", " + password + ", " + hashedPassword);
+
+      connection
+        .update(`UPDATE user SET password=? WHERE email=?`, [
+          hashedPassword,
+          email,
+        ])
+        .then((_) => {
+          const result = JSON.stringify(
+            RestAPIFormat.status200({}, "Password reset success")
+          );
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(result);
+        });
+    });
   }
 }
 
