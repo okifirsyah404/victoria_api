@@ -50,6 +50,119 @@ class HomeContentRoute {
         res.end(JSON.stringify(RestAPIFormat.status404(err)));
       });
   }
+
+  public static async getGameCenterList(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    const token = JSON.parse(
+      AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
+    );
+
+    await connection
+      .selectAll(`SELECT * FROM lokasi`, [token.userId])
+      .then((chunk) => {
+        console.log(chunk);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(
+            RestAPIFormat.status200(chunk, "Success get game center list")
+          )
+        );
+      })
+      .catch((err) => {
+        res.writeHead(404);
+        res.end(JSON.stringify(RestAPIFormat.status404(err)));
+      });
+  }
+
+  public static async getGameCenterDetailPlaystation3(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ): Promise<void> {
+    const token = JSON.parse(
+      AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
+    );
+
+    await connection
+      .select(`SELECT COUNT(id_ps) FROM ps WHERE jenis = 'ps3'`, [token.userId])
+      .then((chunk) => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(
+            RestAPIFormat.status200(
+              {
+                ps3: chunk["COUNT(id_ps)"],
+              },
+              "Success get detail playstation 3"
+            )
+          )
+        );
+      })
+      .catch((err) => {
+        res.writeHead(404);
+        res.end(JSON.stringify(RestAPIFormat.status404(err)));
+      });
+  }
+
+  public static async getGameCenterDetailPlaystation4(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    const token = JSON.parse(
+      AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
+    );
+
+    await connection
+      .select(`SELECT COUNT(id_ps) FROM ps WHERE jenis = 'ps4'`, [token.userId])
+      .then((chunk) => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(
+            RestAPIFormat.status200(
+              {
+                ps4: chunk["COUNT(id_ps)"],
+              },
+              "Success get detail playstation 4"
+            )
+          )
+        );
+      })
+      .catch((err) => {
+        res.writeHead(404);
+        res.end(JSON.stringify(RestAPIFormat.status404(err)));
+      });
+  }
+
+  public static async getGameCenterPSList(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    const token = JSON.parse(
+      AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
+    );
+    let requestBody: string;
+
+    req.on("data", async (chunk) => {
+      requestBody = ParseJSON.JSONtoObject(chunk);
+
+      await connection
+        .selectAll(`SELECT * FROM ps WHERE lok = ? `, [token.userId])
+        .then((chunk) => {
+          console.log(chunk);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify(
+              RestAPIFormat.status200(chunk, "Success get game center PS List")
+            )
+          );
+        })
+        .catch((err) => {
+          res.writeHead(404);
+          res.end(JSON.stringify(RestAPIFormat.status404(err)));
+        });
+    });
+  }
 }
 
 export default HomeContentRoute;
