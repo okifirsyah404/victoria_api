@@ -138,7 +138,48 @@ const server = http.createServer((req, res) => {
       break;
 
     case "/api/home-content":
-      // TODO: add method
+      if (method == "GET") {
+        HomeContentRoute.getHomeContentUser(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/home-content/game-center-list":
+      if (method == "GET") {
+        HomeContentRoute.getGameCenterList(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/home-content/game-center-detail-playstation3":
+      if (method == "GET") {
+        HomeContentRoute.getGameCenterDetailPlaystation3(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/home-content/game-center-detail-playstation4":
+      if (method == "GET") {
+        HomeContentRoute.getGameCenterDetailPlaystation4(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/home-content/game-center-PS-list":
+      if (method == "GET") {
+        HomeContentRoute.getGameCenterPSList(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
       break;
 
     case "/api/home/user":

@@ -196,7 +196,9 @@ class AuthRoute {
               `${fileName}-profile.jpg`,
               userId,
             ]);
-          } catch (error) {}
+          } catch (error) {
+            if (error) console.log(error);
+          }
 
           const result = JSON.stringify(
             RestAPIFormat.status201(
