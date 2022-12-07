@@ -287,6 +287,73 @@ class RouteUser {
     }
   }
 
+  public static async updatePhone(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    const authHeader = req.headers.authorization;
+
+    if (authHeader) {
+      const token = JSON.parse(
+        AuthAccessToken.checkAccessToken(authHeader) ?? ""
+      );
+
+      req.on("data", async (chunk) => {
+        const requestBody = ParseJSON.JSONtoObject(chunk);
+        const { phone } = JSON.parse(requestBody);
+
+        await connection
+          .update(`UPDATE user SET hp=?, update_at=? WHERE user_id=?`, [
+            phone,
+            new Date(),
+            token.userId,
+          ])
+          .then(() => {
+            connection
+              .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
+              .then((data) => {
+                connection.update(
+                  `UPDATE user SET update_at=? WHERE user_id=?`,
+                  [new Date(), token.userId]
+                );
+
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(
+                  JSON.stringify(
+                    RestAPIFormat.status200(
+                      {
+                        userId: data.user_id,
+                        email: data.email,
+                        username: data.username,
+                        phone: data.hp,
+                        address: data.id_address,
+                        image: data.img,
+                        ballance: data.saldo,
+                        playTime: data.playtime,
+                        token: req.headers.authorization,
+                        create_at: data.create_at,
+                        update_at: data.update_at,
+                      },
+                      "Success update phone"
+                    )
+                  )
+                );
+              })
+              .catch((err) => {
+                throw err;
+              });
+          })
+          .catch((err) => {
+            res.writeHead(404);
+            res.end(JSON.stringify(RestAPIFormat.status404(err)));
+          });
+      });
+    } else {
+      res.writeHead(401, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
+    }
+  }
+
   public static async uploadUserImage(
     req: http.IncomingMessage,
     res: http.ServerResponse

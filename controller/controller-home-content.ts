@@ -62,11 +62,24 @@ class HomeContentRoute {
     await connection
       .selectAll(`SELECT * FROM lokasi`, [token.userId])
       .then((chunk) => {
-        console.log(chunk);
+        let result: any[] = [];
+
+        chunk.forEach((element: any) => {
+          result.push({
+            id: element.id_loc,
+            name: element.nama_loc,
+            address: element.address,
+            latitude: element.latitude,
+            longitude: element.longitude,
+          });
+        });
+
+        console.log(result);
+
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify(
-            RestAPIFormat.status200(chunk, "Success get game center list")
+            RestAPIFormat.status200(result, "Success get game center list")
           )
         );
       })
