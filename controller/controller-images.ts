@@ -43,7 +43,7 @@ class ImagesRoute {
 
     const filePath = path.join(
       __dirname,
-      `..\\assets\\images\\${token.email}\\${userData.img}`
+      `../assets/images/${token.email}/${userData.img}`
     );
 
     fs.readFile(filePath, (err, data) => {
@@ -83,7 +83,7 @@ class ImagesRoute {
       const oldPath = files.file.filepath;
       const newPath = path.join(
         __dirname,
-        `..\\assets\\images\\${token.email}\\${userData.img}`
+        `../assets/images/${token.email}/${userData.img}`
       );
 
       fs.copyFile(oldPath, newPath, (err) => {

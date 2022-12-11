@@ -89,7 +89,7 @@ class RouteUser {
 
       const filePath = path.join(
         __dirname,
-        `..\\assets\\images\\${userData.user_id.replace(/-/gi, "")}\\${
+        `../assets/images/${userData.user_id.replace(/-/gi, "")}/${
           userData.img
         }`
       );
@@ -232,6 +232,9 @@ class RouteUser {
 
       req.on("data", async (chunk) => {
         const requestBody = ParseJSON.JSONtoObject(chunk);
+
+        // console.log(requestBody);
+
         const { password } = JSON.parse(requestBody);
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
@@ -360,60 +363,65 @@ class RouteUser {
   ) {
     const authHeader = req.headers.authorization;
 
-    if (authHeader) {
-      const form = new formidable.IncomingForm({});
+    try {
+      if (authHeader) {
+        const form = new formidable.IncomingForm({});
 
-      form.parse(req, async (err, fields, files: any) => {
-        console.log(req.headers);
+        form.parse(req, async (err, fields, files: any) => {
+          console.log(req.headers);
 
-        const token = JSON.parse(
-          AuthAccessToken.checkAccessToken(authHeader) ?? ""
-        );
+          const token = JSON.parse(
+            AuthAccessToken.checkAccessToken(authHeader) ?? ""
+          );
 
-        let userData: any;
+          let userData: any;
 
-        await connection
-          .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
-          .then((chunk) => {
-            userData = chunk;
+          await connection
+            .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
+            .then((chunk) => {
+              userData = chunk;
+            });
+
+          const oldPath = files.file.filepath;
+          const newPath = path.join(
+            __dirname,
+            `../assets/images/${token.userId.replace(/-/gi, "")}/${
+              userData.img
+            }`
+          );
+
+          fs.copyFile(oldPath, newPath, (err) => {
+            if (err) throw err;
           });
 
-        const oldPath = files.file.filepath;
-        const newPath = path.join(
-          __dirname,
-          `..\\assets\\images\\${token.userId.replace(/-/gi, "")}\\${
-            userData.img
-          }`
-        );
+          const result = JSON.stringify(
+            RestAPIFormat.status201(
+              {
+                userId: userData.userId,
+                email: userData.email,
+                username: userData.username,
+                phone: userData.phone,
+                images: userData.img,
+                ballance: userData.saldo,
+                playTime: userData.playtime,
+                token: userData.cookies,
+                create_at: userData.create_at,
+                update_at: userData.update_at,
+              },
+              "Upload image success"
+            )
+          );
 
-        fs.copyFile(oldPath, newPath, (err) => {
-          if (err) throw err;
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(result);
         });
-
-        const result = JSON.stringify(
-          RestAPIFormat.status201(
-            {
-              userId: userData.userId,
-              email: userData.email,
-              username: userData.username,
-              phone: userData.phone,
-              images: userData.img,
-              ballance: userData.saldo,
-              playTime: userData.playtime,
-              token: userData.cookies,
-              create_at: userData.create_at,
-              update_at: userData.update_at,
-            },
-            "Upload image success"
-          )
-        );
-
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(result);
-      });
-    } else {
-      res.writeHead(401, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
+      } else {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
+      }
+    } catch (error) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
 }

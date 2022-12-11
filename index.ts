@@ -6,6 +6,7 @@ import AuthRoute from "./controller/controller-auth";
 import ImagesRoute from "./controller/controller-images";
 import RouteUser from "./controller/controller-user";
 import HomeContentRoute from "./controller/controller-home-content";
+import GameCenterRoute from "./controller/controller-game-center";
 
 dotenv.config();
 const connection = SQLConnection.getInstance().getConnection();
@@ -137,6 +138,15 @@ const server = http.createServer((req, res) => {
       }
       break;
 
+    case "/api/user/phone":
+      if (method == "PUT") {
+        RouteUser.updatePhone(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
     case "/api/home-content":
       if (method == "GET") {
         HomeContentRoute.getHomeContentUser(req, res);
@@ -155,27 +165,18 @@ const server = http.createServer((req, res) => {
       }
       break;
 
-    // case "/api/home-content/game-center-detail-playstation3":
-    //   if (method == "GET") {
-    //     HomeContentRoute.getGameCenterDetailPlaystation3(req, res);
-    //   } else {
-    //     res.writeHead(405, { "Content-Type": "application/json" });
-    //     res.end(JSON.stringify({ error: "Method not allowed" }));
-    //   }
-    //   break;
+    case "/api/game-center/image":
+      if (method == "POST") {
+        GameCenterRoute.getGameCenterImageById(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
 
-    // case "/api/home-content/game-center-detail-playstation4":
-    //   if (method == "GET") {
-    //     HomeContentRoute.getGameCenterDetailPlaystation4(req, res);
-    //   } else {
-    //     res.writeHead(405, { "Content-Type": "application/json" });
-    //     res.end(JSON.stringify({ error: "Method not allowed" }));
-    //   }
-    //   break;
-
-    case "/api/home-content/game-center-PS-list":
-      if (method == "GET") {
-        HomeContentRoute.getGameCenterPSList(req, res);
+    case "/api/game-center/detail":
+      if (method == "POST") {
+        GameCenterRoute.getGameCenterDataById(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));
