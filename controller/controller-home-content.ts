@@ -220,6 +220,30 @@ class HomeContentRoute {
       });
     }
   }
+
+  public static async getGameCenterStatusPS(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    const token = JSON.parse(
+    AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
+    );
+
+    await connection
+      .select(`Select * From ps WHERE lok = ?`, [location])
+      .then((chunk) => {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify(
+            RestAPIFormat.status200(chunk, "Success get game center status PS")
+          )
+        );
+      })
+      .catch((err) => {
+        res.writeHead(404);
+        res.end(JSON.stringify(RestAPIFormat.status404(err)));
+      });
+  }
 }
 
 export default HomeContentRoute;
