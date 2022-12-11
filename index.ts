@@ -197,6 +197,14 @@ const server = http.createServer((req, res) => {
       res.end(JSON.stringify({ error: "Not found" }));
 
       break;
+
+    case "/api/home-content/game-center-status-PS":
+      if (method == "GET") {
+        HomeContentRoute.getGameCenterStatusPS(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
   }
 });
 

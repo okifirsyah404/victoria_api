@@ -147,7 +147,6 @@ class HomeContentRoute {
   //     });
   // }
 
-  
 }
 
 export default HomeContentRoute;
