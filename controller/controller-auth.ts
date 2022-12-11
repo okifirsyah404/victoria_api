@@ -38,17 +38,17 @@ class AuthRoute {
           if (chunk) {
             let verifyPassword = bcrypt.compareSync(password, chunk.password);
 
-            const token = AuthAccessToken.createAccessToken({
-              userId: chunk.user_id,
-              email: chunk.email,
-            });
-
-            connection.update(`UPDATE user SET cookies=? WHERE email=?`, [
-              token,
-              chunk.email,
-            ]);
-
             if (verifyPassword) {
+              const token = AuthAccessToken.createAccessToken({
+                userId: chunk.user_id,
+                email: chunk.email,
+              });
+
+              connection.update(`UPDATE user SET cookies=? WHERE user_id=?`, [
+                token,
+                chunk.user_id,
+              ]);
+
               const result = JSON.stringify(
                 RestAPIFormat.status200(
                   {
@@ -169,7 +169,7 @@ class AuthRoute {
             fs.mkdir(
               path.join(
                 __dirname,
-                `..\\assets\\images\\${userId.replace(/-/gi, "")}`
+                `../assets/images/${userId.replace(/-/gi, "")}`
               ),
               (err) => {
                 if (err) {
@@ -179,13 +179,10 @@ class AuthRoute {
             );
 
             fs.copyFile(
+              path.join(__dirname, `../assets/images/avatar-profile-100.jpg`),
               path.join(
                 __dirname,
-                `..\\assets\\images\\avatar-profile-100.jpg`
-              ),
-              path.join(
-                __dirname,
-                `..\\assets\\images\\${fileName}\\${fileName}-profile.jpg`
+                `../assets/images/${fileName}/${fileName}-profile.jpg`
               ),
               (err) => {
                 if (err) throw err;
@@ -197,7 +194,7 @@ class AuthRoute {
               userId,
             ]);
           } catch (error) {
-            if (error) console.log(error);
+            if (error) throw error;
           }
 
           const result = JSON.stringify(
@@ -261,6 +258,71 @@ class AuthRoute {
       res.writeHead(401, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
     }
+  }
+
+  public static async forgotPasswordOtpResponse(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    req.on("data", async (chunk) => {
+      const requestBody = ParseJSON.JSONtoObject(chunk);
+      const { email } = JSON.parse(requestBody);
+
+      connection
+        .select(`SELECT * FROM user WHERE email=?`, [email])
+        .then((data) => {
+          if (data) {
+            OTP = Math.floor(100000 + Math.random() * 900000).toString();
+            EmailServices.sendEmailResetPassword(email, OTP);
+
+            const result = JSON.stringify(
+              RestAPIFormat.status200(
+                {
+                  OTP,
+                },
+                "Forgot password in progress"
+              )
+            );
+
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(result);
+          } else {
+            res.writeHead(401, { "Content-Type": "application/json" });
+            res.end(
+              JSON.stringify(
+                RestAPIFormat.status401({}, "Email not registered")
+              )
+            );
+          }
+        });
+    });
+  }
+
+  public static async forgotPasswordResponse(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    req.on("data", async (chunk) => {
+      const requestBody = ParseJSON.JSONtoObject(chunk);
+      const { email, password } = JSON.parse(requestBody);
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      console.log(email + ", " + password + ", " + hashedPassword);
+
+      connection
+        .update(`UPDATE user SET password=? WHERE email=?`, [
+          hashedPassword,
+          email,
+        ])
+        .then((_) => {
+          const result = JSON.stringify(
+            RestAPIFormat.status200({}, "Password reset success")
+          );
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(result);
+        });
+    });
   }
 }
 

@@ -57,6 +57,42 @@ class EmailServices {
        `
     );
   }
+
+  public async sendEmailResetPassword(email: string, token: string) {
+    this.sendEmail(
+      email,
+      "Reset password",
+      `<h2>Reset password</h2>
+
+      <p>Harap inputkan kode berikut untuk reset password Tolonto Game.</p>
+
+      </br>
+      </br>
+       <h3><b>${token}</b></h3>
+       </br>
+       </br>
+       <p>Jika ini bukan anda, harap abaikan email ini.</p>
+       `
+    );
+  }
+
+  public async sendEmailChangePassword(email: string, token: string) {
+    this.sendEmail(
+      email,
+      "Change password",
+      `<h2>Change password</h2>
+
+      <p>Harap inputkan kode berikut untuk change password Tolonto Game.</p>
+
+      </br>
+      </br>
+       <h3><b>${token}</b></h3>
+       </br>
+       </br>
+       <p>Jika ini bukan anda, harap abaikan email ini.</p>
+       `
+    );
+  }
 }
 
 export default new EmailServices();

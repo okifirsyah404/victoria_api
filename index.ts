@@ -6,6 +6,7 @@ import AuthRoute from "./controller/controller-auth";
 import ImagesRoute from "./controller/controller-images";
 import RouteUser from "./controller/controller-user";
 import HomeContentRoute from "./controller/controller-home-content";
+import GameCenterRoute from "./controller/controller-game-center";
 
 dotenv.config();
 const connection = SQLConnection.getInstance().getConnection();
@@ -19,6 +20,9 @@ const server = http.createServer((req, res) => {
         res.writeHead(200, { "Content-Type": "application/json" });
         res.write(JSON.stringify({ message: "Hello World" }));
         res.end();
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
       }
       break;
 
@@ -43,6 +47,27 @@ const server = http.createServer((req, res) => {
     case "/api/auth/signup/verify":
       if (method == "POST") {
         AuthRoute.signUpEmailResponse(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/auth/forgot-password":
+      if (method == "PUT") {
+        AuthRoute.forgotPasswordResponse(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/auth/forgot-password/verify":
+      if (method == "POST") {
+        AuthRoute.forgotPasswordOtpResponse(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
       }
       break;
 
@@ -69,8 +94,6 @@ const server = http.createServer((req, res) => {
     case "/api/user":
       if (method == "GET") {
         RouteUser.getUser(req, res);
-      } else if (method == "POST") {
-        RouteUser.updateUser(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));
@@ -82,6 +105,42 @@ const server = http.createServer((req, res) => {
         RouteUser.getUserImage(req, res);
       } else if (method == "POST") {
         RouteUser.uploadUserImage(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/user/username":
+      if (method == "PUT") {
+        RouteUser.updateUsername(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/user/password/verify":
+      if (method == "GET") {
+        RouteUser.sendOtpUpdatePassword(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/user/password":
+      if (method == "PUT") {
+        RouteUser.updatePassword(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/user/phone":
+      if (method == "PUT") {
+        RouteUser.updatePhone(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));
@@ -106,27 +165,18 @@ const server = http.createServer((req, res) => {
       }
       break;
 
-    // case "/api/home-content/game-center-detail-playstation3":
-    //   if (method == "GET") {
-    //     HomeContentRoute.getGameCenterDetailPlaystation3(req, res);
-    //   } else {
-    //     res.writeHead(405, { "Content-Type": "application/json" });
-    //     res.end(JSON.stringify({ error: "Method not allowed" }));
-    //   }
-    //   break;
+    case "/api/game-center/image":
+      if (method == "POST") {
+        GameCenterRoute.getGameCenterImageById(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
 
-    // case "/api/home-content/game-center-detail-playstation4":
-    //   if (method == "GET") {
-    //     HomeContentRoute.getGameCenterDetailPlaystation4(req, res);
-    //   } else {
-    //     res.writeHead(405, { "Content-Type": "application/json" });
-    //     res.end(JSON.stringify({ error: "Method not allowed" }));
-    //   }
-    //   break;
-
-    case "/api/home-content/game-center-PS-list":
-      if (method == "GET") {
-        HomeContentRoute.getGameCenterPSList(req, res);
+    case "/api/game-center/detail":
+      if (method == "POST") {
+        GameCenterRoute.getGameCenterDataById(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));
@@ -136,6 +186,9 @@ const server = http.createServer((req, res) => {
     case "/api/home/user":
       if (method == "GET") {
         HomeContentRoute.getHomeContentUser(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
       }
       break;
 

@@ -62,11 +62,24 @@ class HomeContentRoute {
     await connection
       .selectAll(`SELECT * FROM lokasi`, [token.userId])
       .then((chunk) => {
-        console.log(chunk);
+        let result: any[] = [];
+
+        chunk.forEach((element: any) => {
+          result.push({
+            id: element.id_loc,
+            name: element.nama_loc,
+            address: element.address,
+            latitude: element.latitude,
+            longitude: element.longitude,
+          });
+        });
+
+        console.log(result);
+
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
           JSON.stringify(
-            RestAPIFormat.status200(chunk, "Success get game center list")
+            RestAPIFormat.status200(result, "Success get game center list")
           )
         );
       })
@@ -134,116 +147,6 @@ class HomeContentRoute {
   //     });
   // }
 
-  public static async getGameCenterPSList(
-    req: http.IncomingMessage,
-    res: http.ServerResponse
-  ) {
-    const token = req.headers.authorization;
-
-    if (token) {
-      const authToken = JSON.parse(
-        AuthAccessToken.checkAccessToken(token) ?? ""
-      );
-
-      let requestBody: string;
-
-      req.on("data", async (chunk) => {
-        requestBody = ParseJSON.JSONtoObject(chunk);
-      });
-
-      req.on("end", async () => {
-        const { location } = JSON.parse(requestBody);
-        let locationData: any;
-        let psData: any;
-
-        await connection
-          .selectAll(`SELECT * FROM ps WHERE lok = ? `, [location])
-          .then(async (chunk) => {
-            psData = chunk;
-
-            let ps3 = 0;
-            let ps4 = 0;
-
-            await connection
-              .select(`SELECT * FROM lokasi WHERE id_loc=?`, [location])
-              .then((data) => {
-                locationData = data;
-              });
-
-            await connection
-              .select(
-                `SELECT COUNT(id_ps) FROM ps WHERE jenis = 'ps3' AND lok = ?`,
-                [location]
-              )
-              .then((data) => {
-                ps3 = data["COUNT(id_ps)"];
-              })
-              .catch((err) => {
-                throw err;
-              });
-            await connection
-              .select(
-                `SELECT COUNT(id_ps) FROM ps WHERE jenis = 'ps4' AND lok = ?`,
-                [location]
-              )
-              .then((data) => {
-                ps4 = data["COUNT(id_ps)"];
-              })
-              .catch((err) => {
-                throw err;
-              });
-
-            const result = {
-              name: locationData.nama_loc,
-              latitude: locationData.latitude,
-              longitude: locationData.longitude,
-              playstation3: ps3,
-              playstation4: ps4,
-              playstationTotal: ps3 + ps4,
-              playstationList: psData,
-            };
-
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify(
-                RestAPIFormat.status200(
-                  result,
-                  "Success get game center PS List"
-                )
-              )
-            );
-          })
-          .catch((err) => {
-            res.writeHead(404);
-            res.end(JSON.stringify(RestAPIFormat.status404(err)));
-          });
-      });
-    }
-  }
-
-  public static async getGameCenterStatusPS(
-    req: http.IncomingMessage,
-    res: http.ServerResponse
-  ) {
-    const token = JSON.parse(
-    AuthAccessToken.checkAccessToken(req.headers.authorization) ?? ""
-    );
-
-    await connection
-      .select(`Select * From ps WHERE lok = ?`, [location])
-      .then((chunk) => {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify(
-            RestAPIFormat.status200(chunk, "Success get game center status PS")
-          )
-        );
-      })
-      .catch((err) => {
-        res.writeHead(404);
-        res.end(JSON.stringify(RestAPIFormat.status404(err)));
-      });
-  }
 }
 
 export default HomeContentRoute;
