@@ -7,6 +7,7 @@ import ImagesRoute from "./controller/controller-images";
 import RouteUser from "./controller/controller-user";
 import HomeContentRoute from "./controller/controller-home-content";
 import GameCenterRoute from "./controller/controller-game-center";
+import OrderOnSiteRoute from "./controller/controller-order-on-site";
 
 dotenv.config();
 const connection = SQLConnection.getInstance().getConnection();
@@ -191,6 +192,14 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: "Method not allowed" }));
       }
       break;
+
+    case "/api/order/on-site":
+      if (method == "POST") {
+        OrderOnSiteRoute.postOrderOnSiteDataById(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
 
     default:
       res.writeHead(404, { "Content-Type": "application/json" });
