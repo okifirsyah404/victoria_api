@@ -200,20 +200,40 @@ const server = http.createServer((req, res) => {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));
       }
+      break;
+
+    case "/api/order/on-site/summary":
+      if (method == "POST") {
+        OrderOnSiteRoute.getOrderOnSiteData(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/on-site/verify":
+      if (method == "POST") {
+        OrderOnSiteRoute.verifyOrderOnSiteData(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/on-site/detail":
+      if (method == "POST") {
+        OrderOnSiteRoute.getOrderOnSiteDataById(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
 
     default:
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
 
       break;
-
-    case "/api/home-content/game-center-status-PS":
-      if (method == "GET") {
-        HomeContentRoute.getGameCenterStatusPS(req, res);
-      } else {
-        res.writeHead(405, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Method not allowed" }));
-      }
   }
 });
 
