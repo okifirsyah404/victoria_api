@@ -70,6 +70,59 @@ class OrderOnSiteRoute {
     }
   }
 
+  public static async getAllTimeOrderOnSiteData(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    const token = req.headers.authorization;
+
+    try {
+      if (token) {
+        let requestBody: string;
+
+        req.on("data", async (chunk) => {
+          requestBody = ParseJSON.JSONtoObject(chunk);
+        });
+
+        req.on("end", async () => {
+          const { gameCenterId, playstationId } = JSON.parse(requestBody);
+
+          let timeData: any;
+
+          await connection
+            .selectAll(
+              `SELECT rental.id_rental, rental.id_ps, rental.mulai_rental, rental.selesai_rental, rental.lok, ps.jenis, ps.status FROM rental JOIN ps ON ps.id_ps = rental.id_ps WHERE rental.selesai_rental >= CURRENT_TIMESTAMP AND rental.lok = ? AND rental.id_ps = ?  ORDER BY rental.mulai_rental ASC`,
+              [gameCenterId, playstationId]
+            )
+            .then((chunk) => {
+              timeData = [
+                ...chunk.map((item: any) => {
+                  return {
+                    rentalId: item.id_rental,
+                    playstationId: item.id_ps,
+                    startTime: item.mulai_rental,
+                    endTime: item.selesai_rental,
+                    locationId: item.lok,
+                    playstationType: item.jenis,
+                    playstationStatus: item.status,
+                  };
+                }),
+              ];
+            });
+
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify(RestAPIFormat.status200(timeData, "Success")));
+        });
+      } else {
+        res.writeHead(401);
+        res.end(JSON.stringify(RestAPIFormat.status401("Unauthorized")));
+      }
+    } catch (error) {
+      res.writeHead(500);
+      res.end(JSON.stringify(RestAPIFormat.status500(error)));
+    }
+  }
+
   public static async verifyOrderOnSiteData(
     req: http.IncomingMessage,
     res: http.ServerResponse
@@ -189,11 +242,13 @@ class OrderOnSiteRoute {
             const oldRentalId = rentalData.id;
             const regexp = /RT(\d{3})/;
 
-            const matches = oldRentalId.match(regexp);
+            const matches = oldRentalId.match(regexp) ?? [];
             const number = matches[1];
             let getIntId = parseInt(number);
 
-            newRentalId = `RT00${getIntId + 1}-${newFormattedDate}`;
+            newRentalId = `RT${("00" + (getIntId + 1)).slice(
+              -3
+            )}-${newFormattedDate}`;
           } else {
             newRentalId = `RT001-${newFormattedDate}`;
           }
@@ -272,14 +327,49 @@ class OrderOnSiteRoute {
 
           await connection
             .select(
-              `SELECT rental.id_rental, rental.bayar, lokasi.nama_loc, lokasi.id_loc, jenis.nama_jenis, ps.id_ps, rental.playtime, rental.mulai_rental, user.user_id, user.email, user.username, user.hp FROM rental JOIN lokasi ON rental.lok = lokasi.id_loc JOIN ps ON rental.id_ps = ps.id_ps JOIN jenis ON ps.jenis = jenis.id_jenis JOIN user ON rental.id_user = user.user_id WHERE rental.id_rental = ? AND id_user = ?`,
-              [rentalId, authToken.userId]
+              `SELECT rental.id_rental, rental.bayar, lokasi.nama_loc, lokasi.id_loc, jenis.nama_jenis, ps.id_ps, rental.playtime, rental.mulai_rental, user.user_id, user.email, user.username, user.hp FROM rental JOIN lokasi ON rental.lok = lokasi.id_loc JOIN ps ON rental.id_ps = ps.id_ps JOIN jenis ON ps.jenis = jenis.id_jenis JOIN user ON rental.id_user = user.user_id WHERE rental.id_rental = ?`,
+              [rentalId]
             )
             .then((chunk) => {
-              res.writeHead(200, { "Content-Type": "application/json" });
-              res.end(
-                JSON.stringify(RestAPIFormat.status200(chunk, "Data found"))
-              );
+              if (chunk) {
+                var utcDateformat: Date = chunk.mulai_rental;
+                console.log(utcDateformat);
+
+                var wibDateformat = utcDateformat.toLocaleString("id-ID", {
+                  timeZone: "Asia/Jakarta",
+                });
+
+                console.log();
+                console.log(Date.parse(wibDateformat));
+
+                res.writeHead(200, { "Content-Type": "application/json" });
+                res.end(
+                  JSON.stringify(
+                    RestAPIFormat.status200(
+                      {
+                        rentalId: chunk.id_rental,
+                        totalAmount: chunk.bayar,
+                        gameCenterId: chunk.id_loc,
+                        gameCenterName: chunk.nama_loc,
+                        playstationId: chunk.id_ps,
+                        playstationType: chunk.nama_jenis,
+                        playtime: chunk.playtime,
+                        startPlay: chunk.mulai_rental,
+                        userId: chunk.user_id,
+                        userEmail: chunk.email,
+                        userName: chunk.username,
+                        userPhone: chunk.hp,
+                      },
+                      "Data found"
+                    )
+                  )
+                );
+              } else {
+                res.writeHead(404);
+                res.end(
+                  JSON.stringify(RestAPIFormat.status404("Data not found"))
+                );
+              }
             })
             .catch((error) => {
               throw error;

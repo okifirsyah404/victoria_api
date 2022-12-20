@@ -35,12 +35,31 @@ class GamecenterRoute {
 
         await connection
           .selectAll(
+            `SELECT ps.id_ps, ps.nama_ps, ps.lok, ps.status, jenis.nama_jenis, ps.harga, rental.id_rental, rental.mulai_rental, rental.selesai_rental FROM ps JOIN jenis ON ps.jenis = jenis.id_jenis JOIN rental ON rental.id_ps = ps.id_ps WHERE rental.mulai_rental <= CURRENT_TIMESTAMP AND rental.selesai_rental >= CURRENT_TIMESTAMP AND ps.lok = ? ORDER BY rental.mulai_rental DESC;`,
+            [location]
+          )
+          .then(async (chunk) => {
+            await connection.update("UPDATE ps SET status = ? WHERE lok = ?", [
+              "tidak aktif",
+              location,
+            ]);
+
+            if (chunk) {
+              chunk.forEach(async (element: any) => {
+                await connection.update(
+                  "UPDATE ps SET status = ? WHERE id_ps = ?",
+                  ["aktif", element.id_ps]
+                );
+              });
+            }
+          });
+
+        await connection
+          .selectAll(
             `SELECT ps.id_ps, ps.nama_ps, ps.lok, ps.status, jenis.nama_jenis, ps.harga FROM ps JOIN jenis ON ps.jenis = jenis.id_jenis WHERE lok = ?; `,
             [location]
           )
           .then(async (chunk) => {
-            // console.log(chunk);
-            // psData = chunk;
             chunk.forEach((element: any) => {
               psData.push({
                 id: element.id_ps,

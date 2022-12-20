@@ -202,6 +202,15 @@ const server = http.createServer((req, res) => {
       }
       break;
 
+    case "/api/order/on-site/all-time":
+      if (method == "POST") {
+        OrderOnSiteRoute.getAllTimeOrderOnSiteData(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
     case "/api/order/on-site/summary":
       if (method == "POST") {
         OrderOnSiteRoute.getOrderOnSiteData(req, res);
