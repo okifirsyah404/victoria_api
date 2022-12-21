@@ -6,6 +6,7 @@ import SQLConnection from "../config/sql-connection";
 import RestAPIFormat from "../utils/rest-api-format";
 import AuthAccessToken from "../utils/auth-access-token";
 import ParseJSON from "../utils/json-parse";
+import { match } from "assert";
 
 const connection = SQLConnection.getInstance();
 connection.getConnection();
@@ -42,9 +43,10 @@ class ServicesRoute {
           } = JSON.parse(requestBody);
 
           let serviceData: any;
+          let newServiceId: string;
 
           await connection
-            .select(`SELECT * FROM servis WHERE id_servis`)
+            .select(`SELECT * FROM servis WHERE id_servis`, [serviceId])
             .then((chunk) => {
               serviceData = chunk;
             })
@@ -52,10 +54,24 @@ class ServicesRoute {
               throw err;
             });
 
+          if (serviceData.id) {
+            const oldServiceId = serviceData.id;
+
+            const regexp = /(\d+)/g;
+            const matches = oldServiceId.match(regexp);
+            const number = matches[1];
+            let getIntId = parseInt(number);
+
+            newServiceId = `SV00${getIntId + 1}`;
+          } else {
+            newServiceId = `SV001`;
+          }
+
           await connection
             .insert(
               `INSERT INTO servis (id_servis, nama_barang, kerusakan, detail, waktu_submit, status, est_selesai, lok, id_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
+                newServiceId,
                 serviceId,
                 serviceName,
                 problem,
@@ -76,13 +92,7 @@ class ServicesRoute {
             JSON.stringify(
               RestAPIFormat.status200(
                 {
-                  serviceId: serviceData.id_servis,
-                  serviceName: serviceData.nama_barang,
-                  problem: serviceData.kerusakan,
-                  serviceDetail: serviceData.detail,
-                  timeSubmit: serviceData.waktu_submit,
-                  serviceStatus: serviceData.status,
-                  estimatedEndTime: serviceData.est_selesai,
+                  serviceId: newServiceId,
                 },
                 "Service data has been successfully submitted."
               )
