@@ -1,6 +1,7 @@
 import http from "http";
 import fs from "fs";
 import path from "path";
+import * as nodeStatic from "node-static";
 
 import SQLConnection from "../config/sql-connection";
 import RestAPIFormat from "../utils/rest-api-format";
@@ -11,8 +12,18 @@ import formidable from "formidable";
 const connection = SQLConnection.getInstance();
 connection.getConnection();
 
+const fileServer = new nodeStatic.Server("./public");
+
 class ImagesRoute {
   constructor() {}
+
+  public static getStaticFile(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    fileServer.serve(req, res);
+    return;
+  }
 
   public static async getImage(
     req: http.IncomingMessage,
@@ -32,7 +43,7 @@ class ImagesRoute {
 
     const filePath = path.join(
       __dirname,
-      `..\\assets\\images\\${token.email}\\${userData.img}`
+      `../assets/images/${token.email}/${userData.img}`
     );
 
     fs.readFile(filePath, (err, data) => {
@@ -72,7 +83,7 @@ class ImagesRoute {
       const oldPath = files.file.filepath;
       const newPath = path.join(
         __dirname,
-        `..\\assets\\images\\${token.email}\\${userData.img}`
+        `../assets/images/${token.email}/${userData.img}`
       );
 
       fs.copyFile(oldPath, newPath, (err) => {
