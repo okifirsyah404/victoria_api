@@ -8,6 +8,7 @@ import RouteUser from "./controller/controller-user";
 import HomeContentRoute from "./controller/controller-home-content";
 import GameCenterRoute from "./controller/controller-game-center";
 import OrderOnSiteRoute from "./controller/controller-order-on-site";
+import ServicesRoute from "./controller/controller-service";
 
 dotenv.config();
 const connection = SQLConnection.getInstance().getConnection();
@@ -233,6 +234,15 @@ const server = http.createServer((req, res) => {
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Not found" }));
 
+      break;
+
+    case "/api/service/data":
+      if (method == "POST") {
+        ServicesRoute.postServiceData(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
       break;
   }
 });
