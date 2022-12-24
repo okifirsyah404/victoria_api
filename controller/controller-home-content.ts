@@ -60,6 +60,19 @@ class HomeContentRoute {
     );
 
     await connection
+      .selectAll(
+        `SELECT * FROM rental WHERE selesai_rental < CURRENT_TIMESTAMP`
+      )
+      .then((chunk) => {
+        chunk.map(async (item: any) => {
+          await connection.update(
+            `UPDATE rental SET status = ? WHERE id_rental = ?`,
+            ["done", item.id_rental]
+          );
+        });
+      });
+
+    await connection
       .selectAll(`SELECT * FROM lokasi`, [token.userId])
       .then((chunk) => {
         let result: any[] = [];
@@ -146,7 +159,6 @@ class HomeContentRoute {
   //       res.end(JSON.stringify(RestAPIFormat.status404(err)));
   //     });
   // }
-
 }
 
 export default HomeContentRoute;

@@ -61,11 +61,11 @@ class OrderOnSiteRoute {
           res.end(JSON.stringify(RestAPIFormat.status200(data)));
         });
       } else {
-        res.writeHead(401);
+        res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify(RestAPIFormat.status401("Unauthorized")));
       }
     } catch (error) {
-      res.writeHead(500);
+      res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
@@ -114,11 +114,11 @@ class OrderOnSiteRoute {
           res.end(JSON.stringify(RestAPIFormat.status200(timeData, "Success")));
         });
       } else {
-        res.writeHead(401);
+        res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify(RestAPIFormat.status401("Unauthorized")));
       }
     } catch (error) {
-      res.writeHead(500);
+      res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
@@ -177,11 +177,11 @@ class OrderOnSiteRoute {
             });
         });
       } else {
-        res.writeHead(401);
+        res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify(RestAPIFormat.status401("Unauthorized")));
       }
     } catch (error) {
-      res.writeHead(500);
+      res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
@@ -229,7 +229,6 @@ class OrderOnSiteRoute {
           await connection
             .select(
               `SELECT MAX(id_rental) AS id FROM rental where id_rental LIKE '%${newFormattedDate}%' ORDER BY id_rental DESC`
-              // [newFormattedDate]
             )
             .then((chunk) => {
               rentalData = chunk;
@@ -255,7 +254,7 @@ class OrderOnSiteRoute {
 
           await connection
             .insert(
-              `INSERT INTO rental(id_rental, id_ps, waktu_order, playtime, mulai_rental, selesai_rental, bayar, lok, id_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+              `INSERT INTO rental(id_rental, id_ps, waktu_order, playtime, mulai_rental, selesai_rental, bayar, payment_method, status, lok, id_user) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 newRentalId,
                 playstationId,
@@ -264,6 +263,8 @@ class OrderOnSiteRoute {
                 startPlay,
                 endPlay,
                 totalAmount,
+                paymentMethod.toLowerCase(),
+                "incoming",
                 gameCenterId,
                 authToken.userId,
               ]
@@ -296,11 +297,11 @@ class OrderOnSiteRoute {
           );
         });
       } else {
-        res.writeHead(401);
+        res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify(RestAPIFormat.status401("Unauthorized")));
       }
     } catch (error) {
-      res.writeHead(500);
+      res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
@@ -365,7 +366,7 @@ class OrderOnSiteRoute {
                   )
                 );
               } else {
-                res.writeHead(404);
+                res.writeHead(404, { "Content-Type": "application/json" });
                 res.end(
                   JSON.stringify(RestAPIFormat.status404("Data not found"))
                 );
@@ -376,11 +377,11 @@ class OrderOnSiteRoute {
             });
         });
       } else {
-        res.writeHead(401);
+        res.writeHead(401, { "Content-Type": "application/json" });
         res.end(JSON.stringify(RestAPIFormat.status401("Unauthorized")));
       }
     } catch (error) {
-      res.writeHead(500);
+      res.writeHead(500, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
