@@ -248,7 +248,8 @@ class AuthRoute {
       });
 
     if (req.headers.authorization == userData.cookies) {
-      connection.update(`UPDATE user SET cookies=? WHERE user_id=?`, [
+      connection.update(`UPDATE user SET cookies=?, fcm = ? WHERE user_id=?`, [
+        "",
         "",
         token.userId,
       ]);
