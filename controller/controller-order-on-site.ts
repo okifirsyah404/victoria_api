@@ -1,6 +1,7 @@
 import http from "http";
 import fs from "fs";
 import path from "path";
+import admin from "firebase-admin";
 
 import SQLConnection from "../config/sql-connection";
 import RestAPIFormat from "../utils/rest-api-format";
@@ -324,14 +325,14 @@ class OrderOnSiteRoute {
           requestBody = ParseJSON.JSONtoObject(chunk);
         });
         req.on("end", async () => {
-          const { rentalId } = JSON.parse(requestBody);
+          const { rentalId, fcmToken } = JSON.parse(requestBody);
 
           await connection
             .select(
               `SELECT rental.id_rental, rental.bayar, lokasi.nama_loc, lokasi.id_loc, jenis.nama_jenis, ps.id_ps, rental.playtime, rental.mulai_rental, user.user_id, user.email, user.username, user.hp FROM rental JOIN lokasi ON rental.lok = lokasi.id_loc JOIN ps ON rental.id_ps = ps.id_ps JOIN jenis ON ps.jenis = jenis.id_jenis JOIN user ON rental.id_user = user.user_id WHERE rental.id_rental = ?`,
               [rentalId]
             )
-            .then((chunk) => {
+            .then(async (chunk) => {
               if (chunk) {
                 var utcDateformat: Date = chunk.mulai_rental;
                 console.log(utcDateformat);
@@ -340,8 +341,18 @@ class OrderOnSiteRoute {
                   timeZone: "Asia/Jakarta",
                 });
 
-                console.log();
-                console.log(Date.parse(wibDateformat));
+                await admin
+                  .messaging()
+                  .send({
+                    token: fcmToken,
+                    notification: {
+                      title: "Kamu berhasil melakukan pemesanan",
+                      body: `Kamu berhasil melakukan pemesanan di Game Center ${chunk.nama_loc}`,
+                    },
+                  })
+                  .then((response) => {
+                    console.log("Successfully sent message:", response);
+                  });
 
                 res.writeHead(200, { "Content-Type": "application/json" });
                 res.end(

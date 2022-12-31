@@ -1,5 +1,7 @@
 import http from "http";
 import * as dotenv from "dotenv";
+import path from "path";
+import admin from "firebase-admin";
 
 import SQLConnection from "./config/sql-connection";
 import AuthRoute from "./controller/controller-auth";
@@ -9,9 +11,20 @@ import HomeContentRoute from "./controller/controller-home-content";
 import GameCenterRoute from "./controller/controller-game-center";
 import OrderOnSiteRoute from "./controller/controller-order-on-site";
 import HistoryRoute from "./controller/controller-history";
+import ServicesRoute from "./controller/controller-service";
+import OrderAtHomeRoute from "./controller/controller-order-at-home";
 
 dotenv.config();
 const connection = SQLConnection.getInstance().getConnection();
+
+admin.initializeApp({
+  credential: admin.credential.cert(
+    path.join(
+      __dirname,
+      "victoria-tolonto-firebase-adminsdk-rfxz3-642e925949.json"
+    )
+  ),
+});
 
 const server = http.createServer((req, res) => {
   const { url, method } = req;
@@ -94,7 +107,7 @@ const server = http.createServer((req, res) => {
       break;
 
     case "/api/user":
-      if (method == "GET") {
+      if (method == "POST") {
         RouteUser.getUser(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
@@ -107,6 +120,15 @@ const server = http.createServer((req, res) => {
         RouteUser.getUserImage(req, res);
       } else if (method == "POST") {
         RouteUser.uploadUserImage(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/user/image/id":
+      if (method == "POST") {
+        RouteUser.getUserImageById(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));
@@ -239,6 +261,96 @@ const server = http.createServer((req, res) => {
       }
       break;
 
+    case "/api/order/service":
+      if (method == "POST") {
+        ServicesRoute.postServiceData(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/service/verify":
+      if (method == "POST") {
+        ServicesRoute.verifyServiceData(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/service/detail":
+      if (method == "POST") {
+        ServicesRoute.getServiceDataById(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/at-home/playstation-types":
+      if (method == "GET") {
+        OrderAtHomeRoute.getOrderAtHomePlaystationTypes(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/at-home/playstation-type":
+      if (method == "POST") {
+        OrderAtHomeRoute.getOrderAtHomePlaystationType(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/at-home/playstation-list":
+      if (method == "POST") {
+        OrderAtHomeRoute.getOrderAtHomePlaystationList(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/at-home/playstation-detail":
+      if (method == "POST") {
+        OrderAtHomeRoute.getOrderAtHomePlaystationDetail(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/at-home/verify":
+      if (method == "POST") {
+        OrderAtHomeRoute.verifyOrderAtHomeData(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/at-home":
+      if (method == "POST") {
+        OrderAtHomeRoute.postOrderAtHome(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/order/at-home/detail":
+      if (method == "POST") {
+        OrderAtHomeRoute.getOrderAtHomeById(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
     case "/api/history/on-site/current":
       if (method == "GET") {
         HistoryRoute.getCurrentOrderOnSite(req, res);
@@ -269,6 +381,96 @@ const server = http.createServer((req, res) => {
     case "/api/history/on-site/detail":
       if (method == "POST") {
         HistoryRoute.getOrderOnSiteDetails(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/service/pending":
+      if (method == "GET") {
+        HistoryRoute.getPendingPlaystationService(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/service/progress":
+      if (method == "GET") {
+        HistoryRoute.getProgressPlaystationService(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/service/canceled":
+      if (method == "GET") {
+        HistoryRoute.getCanceledPlaystationService(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/service/finished":
+      if (method == "GET") {
+        HistoryRoute.getFinishedPlaystationService(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/service/detail":
+      if (method == "POST") {
+        HistoryRoute.getPlaystationServiceDetailById(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/at-home/pending":
+      if (method == "GET") {
+        HistoryRoute.getPendingOrderAtHome(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/at-home/active":
+      if (method == "GET") {
+        HistoryRoute.getActiveOrderAtHome(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/at-home/finished":
+      if (method == "GET") {
+        HistoryRoute.getFinishedOrderAtHome(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/at-home/canceled":
+      if (method == "GET") {
+        HistoryRoute.getCanceledOrderAtHome(req, res);
+      } else {
+        res.writeHead(405, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Method not allowed" }));
+      }
+      break;
+
+    case "/api/history/at-home/detail":
+      if (method == "POST") {
+        HistoryRoute.getOrderAtHomeDetailById(req, res);
       } else {
         res.writeHead(405, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ error: "Method not allowed" }));

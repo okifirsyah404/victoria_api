@@ -20,51 +20,83 @@ class RouteUser {
     req: http.IncomingMessage,
     res: http.ServerResponse
   ) {
-    let token;
+    try {
+      let token: any;
 
-    const verifyToken =
-      AuthAccessToken.checkAccessToken(req.headers.authorization) ?? "";
+      const verifyToken =
+        AuthAccessToken.checkAccessToken(req.headers.authorization) ?? "";
 
-    if (verifyToken) {
-      try {
+      if (verifyToken) {
         token = JSON.parse(verifyToken);
+        let requestBody: string;
 
-        await connection
-          .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
-          .then((chunk) => {
-            res.writeHead(200, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify(
-                RestAPIFormat.status200(
-                  {
-                    userId: chunk.user_id,
-                    email: chunk.email,
-                    username: chunk.username,
-                    phone: chunk.hp,
-                    address: chunk.id_address,
-                    image: chunk.img,
-                    ballance: chunk.saldo,
-                    playTime: chunk.playtime,
-                    token: req.headers.authorization,
-                    create_at: chunk.create_at,
-                    update_at: chunk.update_at,
-                  },
-                  "Success get user data"
+        req.on("data", async (chunk) => {
+          requestBody = ParseJSON.JSONtoObject(chunk);
+        });
+
+        req.on("end", async () => {
+          const { fcmToken } = JSON.parse(requestBody);
+
+          await connection
+            .select(`SELECT * FROM user WHERE user_id=?`, [token.userId])
+            .then(async (chunk) => {
+              let newPlaytime: string;
+
+              await connection.update(
+                `UPDATE user SET fcm = ? WHERE user_id = ?`,
+                [fcmToken, token.userId]
+              );
+
+              await connection
+                .select(
+                  `SELECT SUM(rental.playtime) FROM rental JOIN user ON rental.id_user = user.user_id WHERE user.user_id = ? and rental.selesai_rental < CURRENT_TIMESTAMP;`,
+                  [token.userId]
                 )
-              )
-            );
-          })
-          .catch((err) => {
-            res.writeHead(404);
-            res.end(JSON.stringify(RestAPIFormat.status404(err)));
-          });
-      } catch (error) {
-        res.writeHead(400);
-        res.end(JSON.stringify(RestAPIFormat.status400(error)));
+                .then((data) => {
+                  if (data["SUM(rental.playtime)"]) {
+                    newPlaytime = data["SUM(rental.playtime)"].toString();
+
+                    connection.update(
+                      `UPDATE user SET playtime = ? WHERE user_id = ?`,
+                      [newPlaytime, token.userId]
+                    );
+                  } else {
+                    newPlaytime = "0";
+                  }
+                  res.writeHead(200, { "Content-Type": "application/json" });
+                  res.end(
+                    JSON.stringify(
+                      RestAPIFormat.status200(
+                        {
+                          userId: chunk.user_id,
+                          email: chunk.email,
+                          username: chunk.username,
+                          phone: chunk.hp,
+                          address: chunk.id_address,
+                          image: chunk.img,
+                          ballance: chunk.saldo,
+                          playTime: parseInt(newPlaytime),
+                          token: req.headers.authorization,
+                          create_at: chunk.create_at,
+                          update_at: chunk.update_at,
+                        },
+                        "Success get user data"
+                      )
+                    )
+                  );
+                });
+            })
+            .catch((err) => {
+              throw err;
+            });
+        });
+      } else {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
       }
-    } else {
-      res.writeHead(401, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
+    } catch (error) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
 
@@ -110,6 +142,54 @@ class RouteUser {
     } else {
       res.writeHead(401, { "Content-Type": "application/json" });
       res.end(JSON.stringify(RestAPIFormat.status401({}, "Unauthorized")));
+    }
+  }
+
+  public static async getUserImageById(
+    req: http.IncomingMessage,
+    res: http.ServerResponse
+  ) {
+    try {
+      let requestBody: any;
+
+      req.on("data", async (chunk) => {
+        requestBody = ParseJSON.JSONtoObject(chunk);
+      });
+
+      req.on("end", async () => {
+        const { userId } = JSON.parse(requestBody);
+        let userData: any;
+
+        await connection
+          .select(`SELECT * FROM user WHERE user_id=?`, [userId])
+          .then((chunk) => {
+            userData = chunk;
+          });
+
+        const filePath = path.join(
+          __dirname,
+          `../assets/images/${userData.user_id.replace(/-/gi, "")}/${
+            userData.img
+          }`
+        );
+
+        fs.readFile(filePath, (err, data) => {
+          if (err) {
+            res.writeHead(404);
+            res.end(JSON.stringify(RestAPIFormat.status404(err)));
+            return;
+          }
+
+          res.writeHead(200, {
+            "Content-Type": "image/jpeg",
+            "Content-Length": data.length,
+          });
+          res.end(data);
+        });
+      });
+    } catch (error) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(RestAPIFormat.status500(error)));
     }
   }
 
@@ -232,8 +312,6 @@ class RouteUser {
 
       req.on("data", async (chunk) => {
         const requestBody = ParseJSON.JSONtoObject(chunk);
-
-        // console.log(requestBody);
 
         const { password } = JSON.parse(requestBody);
         const hashedPassword = await bcrypt.hash(password, saltRounds);
@@ -368,8 +446,6 @@ class RouteUser {
         const form = new formidable.IncomingForm({});
 
         form.parse(req, async (err, fields, files: any) => {
-          console.log(req.headers);
-
           const token = JSON.parse(
             AuthAccessToken.checkAccessToken(authHeader) ?? ""
           );

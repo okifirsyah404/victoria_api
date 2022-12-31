@@ -73,6 +73,24 @@ class HomeContentRoute {
       });
 
     await connection
+      .selectAll(
+        `SELECT * FROM sewa WHERE akhir_sewa <= CURRENT_TIMESTAMP AND status = 'aktif'`
+      )
+      .then((chunk) => {
+        chunk.map(async (item: any) => {
+          await connection.update(
+            `UPDATE sewa SET status = ? WHERE id_sewa = ?`,
+            ["selesai", item.id_sewa]
+          );
+
+          await connection.update(
+            `UPDATE ps_sewa SET status = ? WHERE id_ps = ?`,
+            ["tidak aktif", item.id_ps]
+          );
+        });
+      });
+
+    await connection
       .selectAll(`SELECT * FROM lokasi`, [token.userId])
       .then((chunk) => {
         let result: any[] = [];
@@ -86,8 +104,6 @@ class HomeContentRoute {
             longitude: element.longitude,
           });
         });
-
-        console.log(result);
 
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(
